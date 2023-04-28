@@ -113,6 +113,7 @@ if is_torch_version(">", "1.10.0"):
 
 
 if is_tpu_available(check_device=False):
+    import torch_xla.core.xla_model as xm
     import torch_xla.distributed.xla_multiprocessing as xmp
 
 
@@ -2260,6 +2261,7 @@ class Accelerator:
         >>> accelerator.save_state(output_dir="my_checkpoint")
         ```
         """
+        logger.critical(f"Anisha: self.project_configuration.automatic_checkpoint_naming = {self.project_configuration.automatic_checkpoint_naming}")
         if self.project_configuration.automatic_checkpoint_naming:
             output_dir = os.path.join(self.project_dir, "checkpoints")
         os.makedirs(output_dir, exist_ok=True)
@@ -2284,8 +2286,12 @@ class Accelerator:
                     f"Checkpoint directory {output_dir} ({self.save_iteration}) already exists. Please manually override `self.save_iteration` with what iteration to start with."
                 )
         os.makedirs(output_dir, exist_ok=True)
-        logger.info(f"Saving current state to {output_dir}")
+        logger.critical(f"Saving current state to {output_dir}")
 
+        if self.distributed_type == DistributedType.TPU:
+            # Finish running the previous step before checkpointing
+            xm.mark_step()
+        logger.critical("Anisha: Finish running the previous step before checkpointing")
         # Save the models taking care of FSDP and DeepSpeed nuances
         weights = []
         for i, model in enumerate(self._models):
@@ -2304,6 +2310,7 @@ class Accelerator:
                 logger.info(f"Megatron-LM Model , Optimizer and Scheduler saved to output dir {output_dir}")
             else:
                 weights.append(self.get_state_dict(model, unwrap=False))
+        logger.critical("Anisha: appended weights")
 
         # Save the optimizers taking care of FSDP and DeepSpeed nuances
         optimizers = []
@@ -2314,6 +2321,7 @@ class Accelerator:
                 logger.info(f"FSDP Optimizer saved to output dir {output_dir}")
         elif self.distributed_type not in [DistributedType.DEEPSPEED, DistributedType.MEGATRON_LM]:
             optimizers = self._optimizers
+        logger.critical("Anisha: optimizers calculation done")
 
         # Save the lr schedulers taking care of DeepSpeed nuances
         schedulers = []
@@ -2325,17 +2333,27 @@ class Accelerator:
         elif self.distributed_type not in [DistributedType.MEGATRON_LM]:
             schedulers = self._schedulers
 
+        logger.critical("Anisha: schedulers calculation done")
+
         # Call model loading hooks that might have been registered with
         # accelerator.register_model_state_hook
         for hook in self._save_model_state_pre_hook.values():
             hook(self._models, weights, output_dir)
+        
+        logger.critical("Anisha: hook calculation done")
 
         save_location = save_accelerator_state(
             output_dir, weights, optimizers, schedulers, self.state.process_index, self.scaler
         )
+        logger.critical(f"Anisha: save_location = {save_location} ")
+
         for i, obj in enumerate(self._custom_objects):
+            logger.critical(f"Anisha: saving object[{i}]")
             save_custom_state(obj, output_dir, i)
+            logger.critical(f"Anisha: saved object[{i}]")
         self.project_configuration.iteration += 1
+
+        logger.critical(f"Anisha: done with accelerate save_state")
         return save_location
 
     def register_load_state_pre_hook(self, hook: Callable[..., None]) -> hooks.RemovableHandle:

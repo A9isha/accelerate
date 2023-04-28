@@ -73,27 +73,27 @@ def save_accelerator_state(
         weights_name = f"{MODEL_NAME}.bin" if i == 0 else f"{MODEL_NAME}_{i}.bin"
         output_model_file = os.path.join(output_dir, weights_name)
         save(state, output_model_file)
-        logger.info(f"Model weights saved in {output_model_file}")
+        logger.critical(f"Model weights saved in {output_model_file}")
     # Optimizer states
     for i, opt in enumerate(optimizers):
         state = opt.state_dict()
         optimizer_name = f"{OPTIMIZER_NAME}.bin" if i == 0 else f"{OPTIMIZER_NAME}_{i}.bin"
         output_optimizer_file = os.path.join(output_dir, optimizer_name)
         save(state, output_optimizer_file)
-        logger.info(f"Optimizer state saved in {output_optimizer_file}")
+        logger.critical(f"Optimizer state saved in {output_optimizer_file}")
     # Scheduler states
     for i, scheduler in enumerate(schedulers):
         state = scheduler.state_dict()
         scheduler_name = f"{SCHEDULER_NAME}.bin" if i == 0 else f"{SCHEDULER_NAME}_{i}.bin"
         output_scheduler_file = os.path.join(output_dir, scheduler_name)
         save(state, output_scheduler_file)
-        logger.info(f"Scheduler state saved in {output_scheduler_file}")
+        logger.critical(f"Scheduler state saved in {output_scheduler_file}")
     # GradScaler state
     if scaler is not None:
         state = scaler.state_dict()
         output_scaler_file = os.path.join(output_dir, SCALER_NAME)
         torch.save(state, output_scaler_file)
-        logger.info(f"Gradient scaler state saved in {output_scaler_file}")
+        logger.critical(f"Gradient scaler state saved in {output_scaler_file}")
     # Random number generator states
     states = {}
     states_name = f"{RNG_STATE_NAME}_{process_index}.pkl"
@@ -106,7 +106,7 @@ def save_accelerator_state(
         states["xm_seed"] = xm.get_rng_state()
     output_states_file = os.path.join(output_dir, states_name)
     torch.save(states, output_states_file)
-    logger.info(f"Random states saved in {output_states_file}")
+    logger.critical(f"Random states saved in {output_states_file}")
     return output_dir
 
 
@@ -198,7 +198,7 @@ def save_custom_state(obj, path, index: int = 0):
     """
     # Should this be the right way to get a qual_name type value from `obj`?
     save_location = Path(path) / f"custom_checkpoint_{index}.pkl"
-    logger.info(f"Saving the state of {get_pretty_name(obj)} to {save_location}")
+    logger.critical(f"Saving the state of {get_pretty_name(obj)} to {save_location}")
     torch.save(obj.state_dict(), save_location)
 
 
